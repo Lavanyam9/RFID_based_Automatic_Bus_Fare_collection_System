@@ -1,0 +1,209 @@
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+#include <SoftwareSerial.h>
+SoftwareSerial mySerial(9,10);
+String a;
+const int MODE=A0;
+const int KEY=A1;
+const int MTR=8;
+const int BUZZ=11;
+int bal=0;
+int total=0;
+
+void setup() {
+  Serial.begin(9600);         //Sets the data rate in bits per second (baud) for serial data transmission
+  mySerial.begin(9600);  
+  lcd.begin(16, 2);
+  lcd.setCursor(0,0);
+  lcd.print("    WELCOME     ");
+  lcd.setCursor(0,1);
+  lcd.print(" HAPPY JOURNEY  ");
+  pinMode(KEY,INPUT);  
+  pinMode(MODE,INPUT);
+  pinMode(MTR,OUTPUT);
+  pinMode(BUZZ,OUTPUT);  
+  digitalWrite(KEY,HIGH);  
+  digitalWrite(MODE,HIGH);
+  digitalWrite(MTR,LOW);
+  digitalWrite(BUZZ,LOW);    
+  Serial.println("WELCOME");  
+  delay(500);
+}
+
+void loop() {
+home:
+  if(digitalRead(MODE)==HIGH)
+  {
+  digitalWrite(MTR,LOW);
+  delay(500);
+  }
+  if(digitalRead(MODE)==LOW)
+  {
+  digitalWrite(MTR,HIGH);
+  delay(500);
+  }  
+    if(Serial.available()>0)
+    {
+    a= Serial.readString();// read the incoming data as string
+    Serial.println(a);
+    if(a[7]=='7')
+    {
+    if(bal<10)
+    {
+    lcd.setCursor(0,0);
+    lcd.print("**LOW  BALANCE**");
+    lcd.setCursor(0,1);
+    lcd.print("PLS RECHARGE TAG");  
+    digitalWrite(BUZZ,HIGH);    
+wait:  
+    if(digitalRead(KEY)==HIGH)
+    {
+    goto wait;
+    }  
+    digitalWrite(BUZZ,LOW);    
+    lcd.setCursor(0,0);
+    lcd.print(" RECHARGING.... ");
+    lcd.setCursor(0,1);
+    lcd.print("                ");
+    bal=bal+100;
+    Serial.print("YOUR BALANCE IS:");  
+    Serial.println(bal);      
+    lcd.setCursor(0,0);
+    lcd.print("  YOUR BALANCE  ");
+    lcd.setCursor(0,1);
+    lcd.print("AMOUNT IS:      ");
+    lcd.setCursor(11,1);  
+    lcd.print(bal);
+    lcd.print("Rs   ");          
+    delay(3000);  
+    lcd.setCursor(0,0);
+    lcd.print("    WELCOME     ");
+    lcd.setCursor(0,1);
+    lcd.print(" HAPPY JOURNEY  ");  
+    goto home;  
+    }
+    lcd.setCursor(0,0);
+    lcd.print("    Ms.SADHA    ");
+    lcd.setCursor(0,1);
+    lcd.print("BAL.AMNT.:      ");  
+    lcd.setCursor(11,1);  
+    lcd.print(bal);
+    lcd.print("Rs  ");          
+    delay(3000);  
+    lcd.setCursor(0,0);
+    lcd.print("    WELCOME     ");
+    lcd.setCursor(0,1);
+    lcd.print(" HAPPY JOURNEY  ");  
+    goto strt;  
+    }
+    goto home;
+    }
+    goto home;
+/////////////////////////////////////////////////////////////////////////////////////////////////    
+strt:  
+  if(digitalRead(MODE)==HIGH)
+  {
+  digitalWrite(MTR,LOW);
+  goto strt;
+  }
+task:
+  total=total+10;  
+  Serial.print("TOTAL:");
+  Serial.print(total);  
+  digitalWrite(MTR,HIGH);
+wait1:  
+  if(digitalRead(MODE)==LOW)
+  {
+  goto wait1;
+  }
+  delay(500);
+  wait2:
+    digitalWrite(MTR,LOW);    
+    if(Serial.available()>0)
+    {
+    a= Serial.readString();// read the incoming data as string
+    Serial.println(a);
+    if(a[7]=='7')
+    {
+    goto gsm;
+    }
+    }
+    if(digitalRead(MODE)==HIGH)
+    {
+    Serial.println("BUS STOPPED AT STAGE");      
+    goto wait2;
+    }
+    if(digitalRead(MODE)==LOW)
+    {
+    delay(500);      
+    goto task;
+    }    
+    goto wait2;
+gsm:lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("BAL.AMNT.:      ");
+    lcd.setCursor(0,1);
+    lcd.print("TRIP FARE:      ");
+    lcd.setCursor(11,0);  
+    lcd.print(bal);
+    lcd.print("Rs  ");    
+    lcd.setCursor(11,1);  
+    lcd.print(total);
+    lcd.print("Rs  ");  
+    delay(4000);              
+    if(total>bal)
+    {
+    lcd.setCursor(0,0);
+    lcd.print("**LOW  BALANCE**");
+    lcd.setCursor(0,1);
+    lcd.print("PLS RECHARGE TAG");  
+    digitalWrite(BUZZ,HIGH);    
+waitx:  
+    if(digitalRead(KEY)==HIGH)
+    {
+    goto waitx;
+    }  
+    digitalWrite(BUZZ,LOW);    
+    lcd.setCursor(0,0);
+    lcd.print(" RECHARGING.... ");
+    lcd.setCursor(0,1);
+    lcd.print("                ");
+    bal=bal+100;
+    goto gsm;    
+    }
+    bal=bal-total;
+    Serial.print("YOUR BALANCE IS:");  
+    Serial.println(bal);  
+    lcd.setCursor(0,0);
+    lcd.print("TRANSACTION DONE");
+    lcd.setCursor(0,1);
+    lcd.print("  FARE DEDUCTED ");
+    delay(3000);        
+    lcd.setCursor(0,0);
+    lcd.print("  YOUR BALANCE  ");
+    lcd.setCursor(0,1);
+    lcd.print("AMOUNT IS:      ");
+    lcd.setCursor(11,1);  
+    lcd.print(bal);
+    lcd.print("Rs   ");
+    mySerial.begin(9600);  
+    delay(1000);  
+    mySerial.println("AT"); //Handshaking with SIM900
+    delay(1000);
+    mySerial.println("AT+CMGF=1"); // Configuring TEXT mode
+    delay(1000);
+    mySerial.println("AT+CMGS=\"+916281009651\"");
+    delay(1000);  
+    mySerial.print("Ms.SADHA,YOUR BUS TAG BALANCE AMOUNT IS:Rs ");
+    mySerial.print(bal);      
+    delay(1000);    
+    mySerial.write(26);
+    delay(500);
+  lcd.setCursor(0,0);
+  lcd.print("    WELCOME     ");
+  lcd.setCursor(0,1);
+  lcd.print(" HAPPY JOURNEY  ");  
+  total=0;  
+    goto home;      
+}
+
